@@ -1,0 +1,4 @@
+# Test-only dependencies. Runtime dependencies live in ../requirements.txt.
+pytest>=8.0
+# sync postgres driver: `config_to_url(config, addon="psycopg")`
+psycopg[binary]>=3.1

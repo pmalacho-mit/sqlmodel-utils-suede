@@ -1,0 +1,47 @@
+name: sqlmodel-utils-tests
+
+services:
+  test-release:
+    build:
+      context: ..
+      dockerfile: ./tests/Dockerfile
+    environment:
+      DB_HOST: test-db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: postgres
+    # Live source, so editing a file needs no rebuild. Read-only so the container
+    # can't drop __pycache__ / .pytest_cache into the working tree.
+    volumes:
+      - ../release:/app/release:ro
+      - ../tests:/app/tests:ro
+    depends_on:
+      test-db:
+        condition: service_healthy
+    networks:
+      - test-network
+
+  test-db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    # The data is thrown away after every run, so keep it in RAM and drop the
+    # durability guarantees we aren't using.
+    tmpfs:
+      - /var/lib/postgresql/data
+    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off
+    healthcheck:
+      # -h forces a TCP check. During init postgres runs a temporary server on
+      # the unix socket only, and a plain `pg_isready` reports ready against it.
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres -h 127.0.0.1"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge

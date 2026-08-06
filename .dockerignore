@@ -1,0 +1,12 @@
+.git
+.github
+.devcontainer
+.vscode
+.worktrees
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.ruff_cache
+*.egg-info
+# devcontainer-only build artifact, and `COPY tests/` would otherwise bake it in
+tests/compose.override.yml

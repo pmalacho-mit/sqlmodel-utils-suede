@@ -1,12 +1,8 @@
+# pyright: reportMissingParameterType=false
 from abc import ABC as IsAbstractClass
 from datetime import datetime, UTC
 from uuid import UUID, uuid4
-from typing import (
-    TypeVar,
-    Literal,
-    Protocol,
-    Any,
-)
+from typing import TypeAlias, TypeVar, Literal, Protocol
 
 from sqlmodel import Field, SQLModel, TIMESTAMP
 from sqlalchemy.orm import declared_attr
@@ -111,14 +107,17 @@ def get_tablename(table: type[TWithTableNameAndID]):
     return withTableName.Get_Tablename()
 
 
+OnDelete: TypeAlias = Literal["CASCADE", "SET NULL", "RESTRICT"]
+
+
 def ForeignKeyField(
     table: type[TWithTableNameAndID] | str,
     *,
     nullable: bool = False,
     index: bool = False,
     description: str | None = None,
-    ondelete: Literal["CASCADE", "SET NULL", "RESTRICT"] | None = "CASCADE",
-) -> Any:
+    ondelete: OnDelete | None = "CASCADE",
+) -> ID:
     """Creates a foreign key field for the given table.
 
     Note: It is critical that consumers of this function explicitly type the property as `ID`
@@ -139,7 +138,7 @@ def ForeignKeyField(
     )
 
     if ondelete is None:
-        return Field(
+        return Field(  # pyright: ignore[reportAny]
             foreign_key=foreign_key,
             nullable=nullable,
             index=index,
@@ -147,7 +146,7 @@ def ForeignKeyField(
         )
     elif ondelete == "SET NULL":
         if nullable:
-            return Field(
+            return Field(  # pyright: ignore[reportAny]
                 foreign_key=foreign_key,
                 nullable=True,
                 index=index,
@@ -159,7 +158,7 @@ def ForeignKeyField(
                 f"Cannot set ondelete='SET NULL' for non-nullable foreign key to {clsName}."
             )
     else:
-        return Field(
+        return Field(  # pyright: ignore[reportAny]
             foreign_key=foreign_key,
             nullable=nullable,
             index=index,

@@ -17,14 +17,16 @@
           "editor.defaultFormatter": null
         },
         "[python]": {
-          "editor.defaultFormatter": "ms-python.black-formatter"
+          "editor.defaultFormatter": "ms-python.black-formatter",
+          "editor.formatOnSave": true
         },
         "editor.formatOnSave": true,
         "editor.tabSize": 2,
         "python.analysis.typeCheckingMode": "standard",
         "python.formatting.blackArgs": [
           "--line-length=88"
-        ]
+        ],
+        "python.formatting.provider": "black"
       }
     }
   },

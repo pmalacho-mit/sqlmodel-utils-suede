@@ -85,9 +85,21 @@ class Database:
     def sync_session(self) -> Session:
         return Session(self.engine.sync_engine)
 
+    async def try_register_extensions(self, session: AsyncSession):
+        if self.__extensions == None or self.__extensions_added:
+            return
+        for extension in self.__extensions:
+            _ = await session.execute(  # pyright: ignore[reportDeprecated]
+                extension_command(extension), params={}
+            )
+        await session.commit()
+        self.__extensions_added = True
+
     @asynccontextmanager
     async def session(
-        self, *, force_no_expire_on_commit=False   # pyright: ignore[reportMissingParameterType]
+        self,
+        *,
+        force_no_expire_on_commit=False,  # pyright: ignore[reportMissingParameterType]
     ) -> AsyncGenerator[AsyncSession, None]:
         """
         Returns an async session. If autoconnect is True, the database will be connected if it is not already connected (using a configuration retrieved from environment variables).
@@ -99,11 +111,7 @@ class Database:
         )
         async with sessionmaker() as session:
             try:
-                if self.__extensions != None and not self.__extensions_added:
-                    for extension in self.__extensions:
-                        _ = await session.execute(extension_command(extension), params={}) # pyright: ignore[reportDeprecated]
-                    await session.commit()
-                    self.__extensions_added = True
+                await self.try_register_extensions(session)
                 yield session
             except Exception:
                 await session.rollback()
