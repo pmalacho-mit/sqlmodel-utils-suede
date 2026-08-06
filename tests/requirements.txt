@@ -1,4 +1,7 @@
 # Test-only dependencies. Runtime dependencies live in ../requirements.txt.
 pytest>=8.0
-# sync postgres driver: `config_to_url(config, addon="psycopg")`
+pytest-asyncio>=0.24
+# both drivers `config_to_url` supports: the sync one keeps most of the suite
+# simple, the async one is what `Database` ships with
 psycopg[binary]>=3.1
+asyncpg>=0.29

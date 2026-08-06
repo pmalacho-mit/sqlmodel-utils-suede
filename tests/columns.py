@@ -10,6 +10,7 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy import Engine, Enum, Inspector, Row, text
 from sqlalchemy.exc import StatementError
 from sqlmodel import Column, Field, Session, SQLModel, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from release.columns import (
     EnumField,
@@ -340,3 +341,68 @@ def test_enum_column_nullability(inspector: Inspector):
     columns = {c["name"]: c for c in inspector.get_columns("enum_row_b")}
     assert columns["status"]["nullable"] is False
     assert columns["review"]["nullable"] is True
+
+
+# --------------------------------------------------------------------------
+# the same columns over asyncpg, the driver `Database` actually ships with.
+# It registers its own json/jsonb codecs and needs explicit bind casts, so it
+# is a genuinely different path from psycopg -- not a repeat of the above.
+# --------------------------------------------------------------------------
+
+
+async def test_async_session_really_is_asyncpg(async_session: AsyncSession):
+    """Guards the block below: without this it could all quietly run on psycopg."""
+    assert async_session.get_bind().dialect.driver == "asyncpg"
+
+
+async def test_json_round_trips_over_asyncpg(async_session: AsyncSession):
+    async_session.add(JSONRow(id=1, one=Highlight(start_line=1, end_line=4)))
+    await async_session.commit()
+
+    row = (await async_session.exec(select(JSONRow))).one()
+    assert row.one == Highlight(start_line=1, end_line=4)
+
+
+async def test_json_list_round_trips_over_asyncpg(async_session: AsyncSession):
+    highlights = [Highlight(start_line=1, end_line=2, note="a")]
+    async_session.add(JSONRow(id=1, many=highlights))
+    await async_session.commit()
+
+    row = (await async_session.exec(select(JSONRow))).one()
+    assert row.many == highlights
+
+
+async def test_jsonb_round_trips_over_asyncpg(async_session: AsyncSession):
+    async_session.add(JSONBRow(id=1, one=Point(x=1, y=2), many=[Point(x=3, y=4)]))
+    await async_session.commit()
+
+    row = (await async_session.exec(select(JSONBRow))).one()
+    assert row.one == Point(x=1, y=2)
+    assert row.many == [Point(x=3, y=4)]
+
+
+async def test_null_round_trips_over_asyncpg(async_session: AsyncSession):
+    async_session.add(JSONRow(id=1))
+    await async_session.commit()
+
+    row = (await async_session.exec(select(JSONRow))).one()
+    assert row.one is None and row.many is None
+
+
+async def test_native_enum_round_trips_over_asyncpg(async_session: AsyncSession):
+    """asyncpg is strict about enum binds -- it needs the cast SQLAlchemy renders."""
+    async_session.add(EnumRowA(id=1, status=Status.IN_PROGRESS))
+    await async_session.commit()
+
+    row = (await async_session.exec(select(EnumRowA))).one()
+    assert row.status is Status.IN_PROGRESS
+
+
+async def test_enum_filters_by_member_over_asyncpg(async_session: AsyncSession):
+    async_session.add(EnumRowB(id=1, status=Status.DONE, review=Status.PENDING))
+    await async_session.commit()
+
+    statement = select(EnumRowB).where(EnumRowB.review == Status.PENDING)
+    row = (await async_session.exec(statement)).one()
+    assert row.status is Status.DONE
+    assert row.label is Status.DONE

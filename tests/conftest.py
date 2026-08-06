@@ -1,14 +1,16 @@
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
 
 import pytest
 from sqlalchemy import Engine, Inspector, inspect, text
 from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 # Imported for the side effect: it swaps SQLModel.metadata for one carrying the
 # library's naming convention, so constraint/index names here match production.
 # Must land before any table model is defined.
 import release.metadata  # noqa: F401
 from release.postgres.config import ConfigFromEnvironment, config_to_url
+from release.postgres.db import Database
 
 
 @pytest.fixture(scope="session")
@@ -46,3 +48,16 @@ def session(engine: Engine) -> Iterator[Session]:
 @pytest.fixture
 def inspector(engine: Engine) -> Inspector:
     return inspect(engine)
+
+
+@pytest.fixture
+async def async_session() -> AsyncIterator[AsyncSession]:
+    """
+    A session over the stack the library actually ships: `Database` ->
+    create_async_engine -> asyncpg. Worth its own fixture because asyncpg's
+    handling of json/jsonb/enum is nothing like psycopg's.
+    """
+    database = Database(pool="null")
+    async with database.session() as session:
+        yield session
+    await database.disconnect()

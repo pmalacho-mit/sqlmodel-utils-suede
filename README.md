@@ -21,3 +21,8 @@ bash <(curl https://raw.githubusercontent.com/pmalacho-mit/suede/refs/heads/main
 
 </details>
 
+## Testing
+
+```bash
+/desolate-ca/trust-proxy-in-builds.sh --image python:3.12-slim --service test-release --compose tests/compose.yml 
+```
