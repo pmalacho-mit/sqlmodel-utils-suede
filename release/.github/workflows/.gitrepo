@@ -4,9 +4,9 @@
 ; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
 ;
 [subrepo]
-	remote = https://github.com/pmalacho-mit/sqlmodel-utils-suede
-	branch = release
-	commit = 0368d1b4601ca080b0d95d3dcacb5e654cf4e691
-	parent = 45b32fbb250ec5d7a41a8ac2fa9d8a857758e1cf
+	remote = https://github.com/pmalacho-mit/suede.git
+	branch = dependency/release/workflows
+	commit = 8d0fe504f17bd8216722e66b28220cdcfa1d507f
+	parent = 50fb12eddfcf229a5626f697335354d81139803f
 	method = merge
 	cmdver = 0.4.9
