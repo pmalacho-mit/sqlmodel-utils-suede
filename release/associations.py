@@ -1,13 +1,13 @@
-# pyright: reportMissingParameterType=false
+# pyright: reportMissingParameterType=false, reportExplicitAny=false, reportAny=false
 from abc import ABC as IsAbstractClass
 from datetime import datetime, UTC
 from uuid import UUID, uuid4
-from typing import TypeAlias, TypeVar, Literal, Protocol
+from typing import Any, TypeAlias, TypeVar, Literal, Protocol
 
 from sqlmodel import Field, SQLModel, TIMESTAMP
 from sqlalchemy.orm import declared_attr
 
-from .utils import TableNameSanitizer
+from .sanitize import snake_and_sanitize
 
 ID = UUID
 
@@ -50,7 +50,7 @@ class WithTime(  # pyright: ignore[reportUnsafeMultipleInheritance]
 
 
 def compute_tablename(name: str, parts: list[str | None]) -> str:
-    name = TableNameSanitizer.SnakeAndSanitize(name)
+    name = snake_and_sanitize(name)
     # hack for plural table names with class names ending in 'y'
     if len(parts) >= 2 and parts[0] is None and parts[1] == "s" and name[-1] == "y":
         name = name[:-1] + "ie"
@@ -117,7 +117,7 @@ def ForeignKeyField(
     index: bool = False,
     description: str | None = None,
     ondelete: OnDelete | None = "CASCADE",
-) -> ID:
+) -> Any:
     """Creates a foreign key field for the given table.
 
     Note: It is critical that consumers of this function explicitly type the property as `ID`
@@ -138,7 +138,7 @@ def ForeignKeyField(
     )
 
     if ondelete is None:
-        return Field(  # pyright: ignore[reportAny]
+        return Field(
             foreign_key=foreign_key,
             nullable=nullable,
             index=index,
@@ -146,7 +146,7 @@ def ForeignKeyField(
         )
     elif ondelete == "SET NULL":
         if nullable:
-            return Field(  # pyright: ignore[reportAny]
+            return Field(
                 foreign_key=foreign_key,
                 nullable=True,
                 index=index,
@@ -158,7 +158,7 @@ def ForeignKeyField(
                 f"Cannot set ondelete='SET NULL' for non-nullable foreign key to {clsName}."
             )
     else:
-        return Field(  # pyright: ignore[reportAny]
+        return Field(
             foreign_key=foreign_key,
             nullable=nullable,
             index=index,

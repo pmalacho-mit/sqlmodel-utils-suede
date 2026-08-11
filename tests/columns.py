@@ -14,6 +14,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from release.columns import (
     EnumField,
+    PydanticJSONBField,
+    PydanticJSONField,
     PydanticAsJSONBColumn,
     PydanticAsJSONColumn,
     PydanticJSONBType,
@@ -64,6 +66,28 @@ class JSONBRow(SQLModel, table=True):
     many: list[Point] | None = Field(
         default=None,
         sa_column=Column(PydanticAsJSONBColumn(Point, is_list=True), nullable=True),
+    )
+
+
+class HasPayload(SQLModel):
+    """Both `*Field` helpers on a shared base -- the case `sa_column` cannot serve."""
+
+    payload: Highlight | None = PydanticJSONField(Highlight, nullable=True)
+    points: list[Point] | None = PydanticJSONBField(Point, is_list=True, nullable=True)
+
+
+class PayloadRowA(HasPayload, table=True):
+    __tablename__ = "payload_row_a"  # pyright: ignore[reportAssignmentType]
+
+    id: int | None = Field(default=None, primary_key=True)
+
+
+class PayloadRowB(HasPayload, table=True):
+    __tablename__ = "payload_row_b"  # pyright: ignore[reportAssignmentType]
+
+    id: int | None = Field(default=None, primary_key=True)
+    tally: list[Point] = PydanticJSONField(
+        Point, is_list=True, default_factory=list, nullable=False
     )
 
 
@@ -406,3 +430,71 @@ async def test_enum_filters_by_member_over_asyncpg(async_session: AsyncSession):
     row = (await async_session.exec(statement)).one()
     assert row.status is Status.DONE
     assert row.label is Status.DONE
+
+
+# --------------------------------------------------------------------------
+# PydanticJSONField / PydanticJSONBField -- the Field-level API
+# --------------------------------------------------------------------------
+
+
+def test_field_api_round_trips(session: Session):
+    session.add(
+        PayloadRowA(
+            id=1,
+            payload=Highlight(start_line=1, end_line=2),
+            points=[Point(x=1, y=2)],
+        )
+    )
+    session.commit()
+    session.expunge_all()
+
+    row = session.exec(select(PayloadRowA)).one()
+    assert row.payload == Highlight(start_line=1, end_line=2)
+    assert row.points == [Point(x=1, y=2)]
+
+
+def test_field_api_can_be_declared_on_a_shared_base(session: Session):
+    session.add(PayloadRowA(id=1, payload=Highlight(start_line=1, end_line=2)))
+    session.add(PayloadRowB(id=1, payload=Highlight(start_line=3, end_line=4)))
+    session.commit()
+    session.expunge_all()
+
+    assert session.exec(select(PayloadRowA)).one().payload == Highlight(
+        start_line=1, end_line=2
+    )
+    assert session.exec(select(PayloadRowB)).one().payload == Highlight(
+        start_line=3, end_line=4
+    )
+
+
+def test_field_api_picks_the_right_column_type(inspector: Inspector):
+    def type_of(table: str, column: str) -> str:
+        found = next(c for c in inspector.get_columns(table) if c["name"] == column)
+        return str(found["type"]).lower()
+
+    assert type_of("payload_row_a", "payload") == "json"
+    assert type_of("payload_row_a", "points") == "jsonb"
+
+
+def test_field_api_nullable_defaults_to_none(session: Session):
+    session.add(PayloadRowA(id=1))
+    session.commit()
+    session.expunge_all()
+
+    row = session.exec(select(PayloadRowA)).one()
+    assert row.payload is None and row.points is None
+
+
+def test_field_api_honours_a_default_factory(session: Session):
+    """`nullable=True` must not force a default over an explicit factory."""
+    session.add(PayloadRowB(id=1))
+    session.commit()
+    session.expunge_all()
+
+    assert session.exec(select(PayloadRowB)).one().tally == []
+
+
+def test_field_api_nullability_reaches_the_table(inspector: Inspector):
+    columns = {c["name"]: c for c in inspector.get_columns("payload_row_b")}
+    assert columns["payload"]["nullable"] is True
+    assert columns["tally"]["nullable"] is False
