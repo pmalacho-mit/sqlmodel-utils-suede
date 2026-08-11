@@ -1,3 +1,4 @@
+# pyright: reportExplicitAny=false, reportAny=false
 import enum
 from typing import Any, Literal, TypeVar, cast, overload, override
 
@@ -123,6 +124,134 @@ def PydanticAsJSONBColumn(
     return PydanticJSONBType(model_class, is_list=is_list, **kwargs)
 
 
+def _column_field(
+    column_type: PydanticJSONType[Any],
+    *,
+    default: Any,
+    nullable: bool,
+    field_kwargs: dict[str, Any],
+) -> Any:
+    """Shared body of the `*Field` helpers -- see `EnumField` for the same shape."""
+    if (
+        default is PydanticUndefined
+        and nullable
+        and "default_factory" not in field_kwargs
+    ):
+        default = None
+
+    return Field(
+        default=default,
+        nullable=nullable,
+        # `sa_type` rather than `sa_column`, so SQLModel builds a fresh Column per
+        # model and the field can be declared once on a shared base. See EnumField.
+        sa_type=cast(type[TypeEngine[Any]], column_type),
+        **field_kwargs,
+    )
+
+
+@overload
+def PydanticJSONField(
+    model_class: type[T],
+    *,
+    is_list: Literal[False] = False,
+    default: Any = PydanticUndefined,
+    nullable: bool = False,
+    none_as_null: bool = True,
+    **field_kwargs: Any,
+) -> T: ...
+
+
+@overload
+def PydanticJSONField(
+    model_class: type[T],
+    *,
+    is_list: Literal[True],
+    default: Any = PydanticUndefined,
+    nullable: bool = False,
+    none_as_null: bool = True,
+    **field_kwargs: Any,
+) -> list[T]: ...
+
+
+def PydanticJSONField(
+    model_class: type[T],
+    *,
+    is_list: bool = False,
+    default: Any = PydanticUndefined,
+    nullable: bool = False,
+    none_as_null: bool = True,
+    **field_kwargs: Any,
+) -> Any:
+    """
+    A JSON field holding `model_class`, without the `Column(...)` ceremony.
+
+    `nullable=True` implies `default=None` (unless you pass a `default_factory`).
+    Remaining kwargs go to `Field` (description, alias, ...).
+
+    >>> highlights: list[Highlight] | None = PydanticJSONField(
+    ...     Highlight, is_list=True, nullable=True
+    ... )
+    """
+    return _column_field(
+        PydanticJSONType(model_class, is_list=is_list, none_as_null=none_as_null),
+        default=default,
+        nullable=nullable,
+        field_kwargs=field_kwargs,
+    )
+
+
+@overload
+def PydanticJSONBField(
+    model_class: type[T],
+    *,
+    is_list: Literal[False] = False,
+    default: Any = PydanticUndefined,
+    nullable: bool = False,
+    none_as_null: bool = True,
+    **field_kwargs: Any,
+) -> T: ...
+
+
+@overload
+def PydanticJSONBField(
+    model_class: type[T],
+    *,
+    is_list: Literal[True],
+    default: Any = PydanticUndefined,
+    nullable: bool = False,
+    none_as_null: bool = True,
+    **field_kwargs: Any,
+) -> list[T]: ...
+
+
+def PydanticJSONBField(
+    model_class: type[T],
+    *,
+    is_list: bool = False,
+    default: Any = PydanticUndefined,
+    nullable: bool = False,
+    none_as_null: bool = True,
+    **field_kwargs: Any,
+) -> Any:
+    """
+    A JSONB field holding `model_class`, without the `Column(...)` ceremony.
+
+    Deliberately no `index=`: a plain btree index over a document is rarely what
+    you want, and the GIN index that is needs a table-level
+    `Index(..., postgresql_using="gin")` that `Field` cannot express.
+
+    >>> highlights: list[Highlight] | None = PydanticJSONBField(
+    ...     Highlight, is_list=True, nullable=True
+    ... )
+    """
+    return _column_field(
+        PydanticJSONBType(model_class, is_list=is_list, none_as_null=none_as_null),
+        default=default,
+        nullable=nullable,
+        field_kwargs=field_kwargs,
+    )
+
+
 def enum_values(enum_class: type[enum.Enum]) -> list[str]:
     """
     The values persisted for an enum. We store `.value` rather than the default
@@ -153,7 +282,12 @@ def EnumField(
 
     >>> status: Status = EnumField(Status, default=Status.PENDING, index=True)
     """
-    if default is PydanticUndefined and nullable:
+    # pydantic rejects a default and a default_factory together
+    if (
+        default is PydanticUndefined
+        and nullable
+        and "default_factory" not in field_kwargs
+    ):
         default = None
 
     enum_type = Enum(
@@ -176,5 +310,5 @@ def EnumField(
         # `Column(...)`, which takes a TypeEngine instance just as happily as a
         # class -- hence the cast.
         sa_type=cast(type[Enum], enum_type),
-        **field_kwargs,  # pyright: ignore[reportAny]
+        **field_kwargs,
     )
