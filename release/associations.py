@@ -2,7 +2,7 @@
 from abc import ABC as IsAbstractClass
 from datetime import datetime, UTC
 from uuid import UUID, uuid4
-from typing import Any, TypeAlias, TypeVar, Literal, Protocol
+from typing import Annotated, Any, TypeAlias, TypeVar, Literal, Protocol
 
 from sqlmodel import Field, SQLModel, TIMESTAMP
 from sqlalchemy.orm import declared_attr
@@ -33,18 +33,22 @@ def now(zone=UTC):
     return datetime.now(zone)
 
 
-class WithTime(  # pyright: ignore[reportUnsafeMultipleInheritance]
-    SQLModel, IsAbstractClass
-):
-    """A base class for models that have a timestamp (defaults to when model is created)"""
-
-    timestamp: datetime = Field(
+def TimestampField():
+    return Field(
         sa_type=TIMESTAMP(timezone=True),  # pyright: ignore[reportArgumentType]
         nullable=False,
         index=True,
         default_factory=now,
         description="The time the model was created.",
     )
+
+
+class WithTime(  # pyright: ignore[reportUnsafeMultipleInheritance]
+    SQLModel, IsAbstractClass
+):
+    """A base class for models that have a timestamp (defaults to when model is created)"""
+
+    timestamp: datetime = TimestampField()
 
     """The time the model was created."""
 
@@ -114,7 +118,7 @@ def ForeignKeyField(
     table: type[TWithTableNameAndID] | str,
     *,
     nullable: bool = False,
-    index: bool = False,
+    index: bool = True,
     description: str | None = None,
     ondelete: OnDelete | None = "CASCADE",
 ) -> Any:
