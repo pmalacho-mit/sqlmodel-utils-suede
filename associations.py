@@ -106,7 +106,7 @@ class HasID(Protocol[TID]):
 TWithTableNameAndID = TypeVar("TWithTableNameAndID", bound=WithTableName | HasID[ID])
 
 
-def get_tablename(table: type[TWithTableNameAndID]):
+def get_tablename(table: type[TWithTablename | TWithTableNameAndID]):
     withTableName: WithTableName = table  # pyright: ignore[reportAssignmentType]
     return withTableName.Get_Tablename()
 
