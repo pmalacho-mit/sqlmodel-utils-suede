@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/pmalacho-mit/sqlmodel-utils-suede
 	branch = release
-	commit = 373361708cf6e2cfd0ef994ebd1caf6de12340b7
-	parent = e314b07cde34eb6d9af9c2356ac16e7440f17e36
+	commit = 89b4b17bf44efe22a9128d7c40bc0a6e1eac4538
+	parent = dbfed83e1540a2efde604ba2202e2406aea57835
 	method = merge
 	cmdver = 0.4.9
