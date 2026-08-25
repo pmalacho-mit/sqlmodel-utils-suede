@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained automatically
+; by the git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = git@github.com:pmalacho-mit/sqlmodel-utils-suede.git
+	branch = release
+	commit = 89b4b17bf44efe22a9128d7c40bc0a6e1eac4538
+	parent = d046ca71fca6b072ba8b1b618cc6e6024d6ebd6f
+	method = merge
+	cmdver = 0.4.9

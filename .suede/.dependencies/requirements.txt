@@ -1,0 +1,2 @@
+inflection==0.5.1
+sqlmodel==0.0.39
