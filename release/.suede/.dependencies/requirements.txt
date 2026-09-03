@@ -1,2 +1,4 @@
 inflection==0.5.1
 sqlmodel==0.0.39
+# only `release/migrations/` imports it; >=1.16 also allows `init --config pyproject`
+alembic>=1.13
