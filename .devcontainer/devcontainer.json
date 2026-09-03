@@ -1,7 +1,10 @@
 {
   "customizations": {
     "desolate": {
-      "allowPrivileged": true
+      "allowPrivileged": true,
+      "shadowImages": [
+        "python:3.12-slim"
+      ]
     },
     "vscode": {
       "extensions": [

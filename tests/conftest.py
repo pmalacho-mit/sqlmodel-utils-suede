@@ -5,12 +5,14 @@ from sqlalchemy import Engine, Inspector, inspect, text
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-# Imported for the side effect: it swaps SQLModel.metadata for one carrying the
-# library's naming convention, so constraint/index names here match production.
-# Must land before any table model is defined.
-import release.metadata  # noqa: F401
+# Swaps SQLModel.metadata for one carrying the library's naming convention, so
+# constraint/index names here match production. Must run before any table model
+# is defined -- hence at import time, not in a fixture.
+from release.postgres.metadata import install_global_naming_conventions
 from release.postgres.config import ConfigFromEnvironment, config_to_url
 from release.postgres.db import Database
+
+_ = install_global_naming_conventions()
 
 
 @pytest.fixture(scope="session")

@@ -1,0 +1,24 @@
+# Appended by `python -m __PACKAGE__.migrations init --config pyproject`.
+# Requires alembic >= 1.16. Logging still comes from alembic.ini.
+[tool.alembic]
+
+script_location = "__SCRIPT_LOCATION__"
+
+# `import myapp.models` in env.py resolves relative to these.
+prepend_sys_path = ["."]
+
+# Prefix filenames with the creation time, so `versions/` sorts chronologically
+# rather than by random revision hash. Values here are `%`-interpolated against
+# alembic's own tokens, so a literal `%` is written `%%`.
+file_template = "%%(year)d%%(month).2d%%(day).2d_%%(hour).2d%%(minute).2d_%%(rev)s_%%(slug)s"
+
+# The database url is *not* set here. env.py resolves it from the same
+# environment variables the application reads (DB_HOST, DB_USER, DB_PASSWORD,
+# DB_NAME), so there is one source of truth and no credentials in the repo.
+
+# Uncomment to format every generated migration.
+# [[tool.alembic.post_write_hooks]]
+# name = "ruff-format"
+# type = "exec"
+# executable = "ruff"
+# options = "format REVISION_SCRIPT_FILENAME"

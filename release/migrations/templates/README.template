@@ -1,0 +1,13 @@
+Alembic migrations, driven by __PACKAGE__.migrations.
+
+  alembic revision --autogenerate -m "add widgets"   # write a migration
+  alembic upgrade head                               # apply it
+  alembic downgrade -1                               # undo the last one
+  alembic upgrade head --sql                         # print the SQL instead
+
+The database url comes from the environment (DB_HOST, DB_USER, DB_PASSWORD,
+DB_NAME), not from alembic.ini -- the same variables the application reads.
+
+Always read a generated migration before committing it. Autogenerate does not
+detect renames (it emits a drop plus an add, which loses the data), and cannot
+know what to backfill for a new NOT NULL column.
