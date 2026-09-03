@@ -1,0 +1,67 @@
+# Alembic configuration.
+#
+# Deliberately minimal: env.py drives everything through
+# `__PACKAGE__.migrations.run_migrations`, so most of what `alembic init` writes
+# here would be dead configuration.
+
+[alembic]
+script_location = __SCRIPT_LOCATION__
+
+# The database url is *not* set here. env.py resolves it from the same
+# environment variables the application reads (DB_HOST, DB_USER, DB_PASSWORD,
+# DB_NAME), so there is one source of truth and no credentials in the repo.
+#
+# Setting it here does work, and takes precedence -- but note that ConfigParser
+# interpolates the value, so a `%` in the password must be written as `%%`.
+# sqlalchemy.url = postgresql+asyncpg://user:pass@localhost:5432/dbname
+
+# `import myapp.models` in env.py resolves relative to these.
+prepend_sys_path = .
+# How to split the line above. Alembic 1.16 deprecated the old "spaces, commas
+# and colons" behaviour; earlier versions simply ignore this key.
+path_separator = os
+
+# Prefix filenames with the creation time, so `versions/` sorts chronologically
+# rather than by random revision hash.
+file_template = %%(year)d%%(month).2d%%(day).2d_%%(hour).2d%%(minute).2d_%%(rev)s_%%(slug)s
+
+# Uncomment to format every generated migration.
+# [post_write_hooks]
+# hooks = ruff_format
+# ruff_format.type = exec
+# ruff_format.executable = ruff
+# ruff_format.options = format REVISION_SCRIPT_FILENAME
+
+[loggers]
+keys = root,sqlalchemy,alembic
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = WARNING
+handlers = console
+qualname =
+
+[logger_sqlalchemy]
+level = WARNING
+handlers =
+qualname = sqlalchemy.engine
+
+[logger_alembic]
+level = INFO
+handlers =
+qualname = alembic
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(levelname)-5.5s [%(name)s] %(message)s
+datefmt = %H:%M:%S

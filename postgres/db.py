@@ -8,7 +8,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.pool import NullPool
 
 from .config import Config, ConfigFromEnvironment, config_to_url, PostgresAddOn
-from ..metadata import *
+from .metadata import *
 
 
 def extension_command(extension: str):
